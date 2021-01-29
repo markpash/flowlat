@@ -1,29 +1,46 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
-	"net"
+	"log"
+	"os"
+	"os/signal"
 
-	"github.com/markpash/flowlat/internal/tcp"
+	"github.com/markpash/flowlat/internal/probe"
+
+	"github.com/vishvananda/netlink"
 )
 
-// For now we are experimenting with the hash function, and deciding how
-// the packet will be represented.
 func main() {
-	packetForward := tcp.Packet{
-		SrcIP:    net.IPv4(1, 1, 1, 1),
-		SrcPort:  57577,
-		DestIP:   net.IPv4(2, 2, 2, 2),
-		DestPort: 80,
+	ifaceStr := flag.String("iface", "eth0", "interface to attach the probe to")
+	flag.Parse()
+
+	iface, err := netlink.LinkByName(*ifaceStr)
+	if err != nil {
+		panic(err)
 	}
 
-	packetReverse := tcp.Packet{
-		SrcIP:    net.IPv4(2, 2, 2, 2),
-		SrcPort:  80,
-		DestIP:   net.IPv4(1, 1, 1, 1),
-		DestPort: 57577,
-	}
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
-	fmt.Println(packetForward.Hash())
-	fmt.Println(packetReverse.Hash())
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt)
+
+	go func() {
+		<-s
+		log.Printf("Received SIGINT/SIGTERM. Exiting.")
+		signal.Stop(s)
+		cancel()
+	}()
+
+	if err := probe.Run(ctx, iface); err != nil {
+		panic(err)
+	}
+}
+
+func panic(err error) {
+	fmt.Fprintf(os.Stderr, "%s\n", err)
+	os.Exit(1)
 }
