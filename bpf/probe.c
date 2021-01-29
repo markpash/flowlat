@@ -12,8 +12,12 @@
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-SEC("classifier/probe")
+SEC("classifier")
 int probe(struct __sk_buff *skb) {
+  if (bpf_skb_pull_data(skb, 0) < 0) {
+    return TC_ACT_OK;
+  }
+
   uint8_t *head = (uint8_t *)(long)skb->data;
   uint8_t *tail = (uint8_t *)(long)skb->data_end;
 
@@ -34,7 +38,7 @@ int probe(struct __sk_buff *skb) {
     }
 
     struct iphdr *ip = (void *)head + sizeof(struct ethhdr);
-    if (bpf_ntohs(ip->protocol) != IPPROTO_TCP) {
+    if (ip->protocol != IPPROTO_TCP) {
       return TC_ACT_OK;
     }
     break;
@@ -46,7 +50,7 @@ int probe(struct __sk_buff *skb) {
     }
 
     struct ipv6hdr *ip6 = (void *)head + sizeof(struct ethhdr);
-    if (bpf_ntohs(ip6->nexthdr) != IPPROTO_TCP) {
+    if (ip6->nexthdr != IPPROTO_TCP) {
       return TC_ACT_OK;
     }
     break;
