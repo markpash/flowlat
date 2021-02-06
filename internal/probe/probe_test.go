@@ -10,6 +10,7 @@ import (
 )
 
 func TestTCPv4ACKPacket(t *testing.T) {
+	require.NoError(t, setRlimit())
 	probe := probe{}
 	err := probe.loadObjects()
 	require.NoError(t, err)
@@ -22,6 +23,7 @@ func TestTCPv4ACKPacket(t *testing.T) {
 }
 
 func TestTCPv4SYNPacket(t *testing.T) {
+	require.NoError(t, setRlimit())
 	probe := probe{}
 	err := probe.loadObjects()
 	require.NoError(t, err)
@@ -34,6 +36,7 @@ func TestTCPv4SYNPacket(t *testing.T) {
 }
 
 func TestTCPv4SYNACKPacket(t *testing.T) {
+	require.NoError(t, setRlimit())
 	probe := probe{}
 	err := probe.loadObjects()
 	require.NoError(t, err)

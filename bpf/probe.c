@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <linux/bpf.h>
@@ -11,6 +12,16 @@
 
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
+
+struct bpf_map_def SEC("maps") pipe = {
+    .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+};
+
+struct packet_t {
+  struct in_addr src_addr, dst_addr;
+  __be16 src_port, dest_port;
+  bool syn, ack;
+};
 
 SEC("classifier")
 int probe(struct __sk_buff *skb) {
@@ -27,6 +38,8 @@ int probe(struct __sk_buff *skb) {
 
   struct ethhdr *eth = (void *)head;
 
+  struct packet_t pkt = {0};
+
   uint32_t offset;
 
   switch (bpf_ntohs(eth->h_proto)) {
@@ -41,6 +54,9 @@ int probe(struct __sk_buff *skb) {
     if (ip->protocol != IPPROTO_TCP) {
       return TC_ACT_OK;
     }
+    pkt.src_addr.s_addr = ip->saddr;
+    pkt.dst_addr.s_addr = ip->daddr;
+
     break;
   case ETH_P_IPV6:
     offset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr);
@@ -65,9 +81,15 @@ int probe(struct __sk_buff *skb) {
   struct tcphdr *tcp = (void *)head + offset;
 
   if (tcp->syn) {
-    bpf_printk("GOT SYN\n");
-  } else if (tcp->ack) {
-    bpf_printk("GOT ACK\n");
+    pkt.src_port = tcp->source;
+    pkt.dest_port = tcp->dest;
+    pkt.syn = true;
+    pkt.ack = tcp->ack;
+
+    if (bpf_perf_event_output(skb, &pipe, BPF_F_CURRENT_CPU, &pkt,
+                              sizeof(pkt)) < 0) {
+      return TC_ACT_OK;
+    }
   }
   return TC_ACT_OK;
 }

@@ -2,9 +2,11 @@ package probe
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/markpash/flowlat/internal/clsact"
 
+	"github.com/cilium/ebpf/perf"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
@@ -25,25 +27,40 @@ func Run(ctx context.Context, iface netlink.Link) error {
 	if err != nil {
 		return err
 	}
+	defer probe.Close()
 
-	<-ctx.Done()
-
-	if err := probe.Close(); err != nil {
+	pipe := probe.bpfObjects.MapPipe
+	rd, err := perf.NewReader(pipe, 10)
+	if err != nil {
 		return err
 	}
+	defer rd.Close()
 
-	return nil
+	c := make(chan []byte)
+	go func() {
+		for {
+			event, err := rd.Read()
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			c <- event.RawSample
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return probe.Close()
+		case event := <-c:
+			fmt.Println(event)
+		}
+	}
 }
 
 func (p *probe) Close() error {
 	if err := p.handle.QdiscDel(p.qdisc); err != nil {
 		return err
-	}
-
-	for _, filter := range p.filters {
-		if err := p.handle.FilterDel(filter); err != nil {
-			return err
-		}
 	}
 
 	if err := p.bpfObjects.Close(); err != nil {
@@ -55,6 +72,10 @@ func (p *probe) Close() error {
 }
 
 func newProbe(iface netlink.Link) (*probe, error) {
+	if err := setRlimit(); err != nil {
+		return nil, err
+	}
+
 	handle, err := netlink.NewHandle(unix.NETLINK_ROUTE)
 	if err != nil {
 		return nil, err
@@ -140,4 +161,9 @@ func (p *probe) loadObjects() error {
 
 	p.bpfObjects = objs
 	return nil
+}
+
+func setRlimit() error {
+	n := uint64(1024 * 1024 * 10)
+	return unix.Setrlimit(unix.RLIMIT_MEMLOCK, &unix.Rlimit{Cur: n, Max: n})
 }
