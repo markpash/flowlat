@@ -1,24 +1,24 @@
 package tcp
 
 import (
-	"net"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"inet.af/netaddr"
 )
 
 func TestHashReverseCollision(t *testing.T) {
 	packetForward := Packet{
-		SrcIP:    net.IPv4(1, 1, 1, 1),
+		SrcIP:    netaddr.IPv4(1, 1, 1, 1),
 		SrcPort:  57577,
-		DestIP:   net.IPv4(2, 2, 2, 2),
+		DestIP:   netaddr.IPv4(2, 2, 2, 2),
 		DestPort: 80,
 	}
 
 	packetReverse := Packet{
-		SrcIP:    net.IPv4(2, 2, 2, 2),
+		SrcIP:    netaddr.IPv4(2, 2, 2, 2),
 		SrcPort:  80,
-		DestIP:   net.IPv4(1, 1, 1, 1),
+		DestIP:   netaddr.IPv4(1, 1, 1, 1),
 		DestPort: 57577,
 	}
 

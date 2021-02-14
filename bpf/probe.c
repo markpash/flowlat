@@ -18,8 +18,8 @@ struct bpf_map_def SEC("maps") pipe = {
 };
 
 struct packet_t {
-  struct in_addr src_addr, dst_addr;
-  __be16 src_port, dest_port;
+  struct in6_addr src_addr, dst_addr;
+  __be16 src_port, dst_port;
   bool syn, ack;
 };
 
@@ -54,8 +54,13 @@ int probe(struct __sk_buff *skb) {
     if (ip->protocol != IPPROTO_TCP) {
       return TC_ACT_OK;
     }
-    pkt.src_addr.s_addr = ip->saddr;
-    pkt.dst_addr.s_addr = ip->daddr;
+
+    // Create a IPv4-Mapped IPv6 Address
+    pkt.src_addr.in6_u.u6_addr32[3] = ip->saddr;
+    pkt.dst_addr.in6_u.u6_addr32[3] = ip->daddr;
+
+    pkt.src_addr.in6_u.u6_addr16[5] = 0xffff;
+    pkt.dst_addr.in6_u.u6_addr16[5] = 0xffff;
 
     break;
   case ETH_P_IPV6:
@@ -69,6 +74,10 @@ int probe(struct __sk_buff *skb) {
     if (ip6->nexthdr != IPPROTO_TCP) {
       return TC_ACT_OK;
     }
+
+    pkt.src_addr = ip6->saddr;
+    pkt.dst_addr = ip6->daddr;
+
     break;
   default:
     return TC_ACT_OK;
@@ -82,7 +91,7 @@ int probe(struct __sk_buff *skb) {
 
   if (tcp->syn) {
     pkt.src_port = tcp->source;
-    pkt.dest_port = tcp->dest;
+    pkt.dst_port = tcp->dest;
     pkt.syn = true;
     pkt.ack = tcp->ack;
 

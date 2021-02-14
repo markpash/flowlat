@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/markpash/flowlat/internal/clsact"
+	"github.com/markpash/flowlat/internal/tcp"
 
 	"github.com/cilium/ebpf/perf"
 	"github.com/vishvananda/netlink"
@@ -53,7 +54,8 @@ func Run(ctx context.Context, iface netlink.Link) error {
 		case <-ctx.Done():
 			return probe.Close()
 		case event := <-c:
-			fmt.Println(event)
+			packetAttributes := tcp.UnmarshalBinary(event)
+			fmt.Printf("%+v\n", packetAttributes)
 		}
 	}
 }
@@ -137,6 +139,22 @@ func (p *probe) createFilters() error {
 		Parent:    netlink.HANDLE_MIN_EGRESS,
 		Handle:    netlink.MakeHandle(0xffff, 0),
 		Protocol:  unix.ETH_P_IP,
+	})
+
+	// Ingress IPv6
+	addFilter(netlink.FilterAttrs{
+		LinkIndex: p.iface.Attrs().Index,
+		Parent:    netlink.HANDLE_MIN_INGRESS,
+		Handle:    netlink.MakeHandle(0xffff, 0),
+		Protocol:  unix.ETH_P_IPV6,
+	})
+
+	// Egress IPv6
+	addFilter(netlink.FilterAttrs{
+		LinkIndex: p.iface.Attrs().Index,
+		Parent:    netlink.HANDLE_MIN_EGRESS,
+		Handle:    netlink.MakeHandle(0xffff, 0),
+		Protocol:  unix.ETH_P_IPV6,
 	})
 
 	for _, filter := range p.filters {
