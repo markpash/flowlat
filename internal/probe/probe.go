@@ -55,7 +55,7 @@ func Run(ctx context.Context, iface netlink.Link) error {
 			return probe.Close()
 		case event := <-c:
 			packetAttributes := tcp.UnmarshalBinary(event)
-			fmt.Printf("%+v\n", packetAttributes)
+			tcp.CalcLatency(packetAttributes)
 		}
 	}
 }

@@ -21,6 +21,7 @@ struct packet_t {
   struct in6_addr src_addr, dst_addr;
   __be16 src_port, dst_port;
   bool syn, ack;
+  uint64_t ts;
 };
 
 SEC("classifier")
@@ -94,6 +95,7 @@ int probe(struct __sk_buff *skb) {
     pkt.dst_port = tcp->dest;
     pkt.syn = true;
     pkt.ack = tcp->ack;
+    pkt.ts = bpf_ktime_get_ns();
 
     if (bpf_perf_event_output(skb, &pipe, BPF_F_CURRENT_CPU, &pkt,
                               sizeof(pkt)) < 0) {
