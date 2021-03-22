@@ -30,7 +30,7 @@ func Run(ctx context.Context, iface netlink.Link) error {
 	}
 	defer probe.Close()
 
-	pipe := probe.bpfObjects.MapPipe
+	pipe := probe.bpfObjects.Pipe
 	rd, err := perf.NewReader(pipe, 10)
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (p *probe) createFilters() error {
 		p.filters = append(p.filters, &netlink.BpfFilter{
 			FilterAttrs:  attrs,
 			DirectAction: true,
-			Fd:           p.bpfObjects.ProgramProbe.FD(),
+			Fd:           p.bpfObjects.Probe.FD(),
 		})
 	}
 
@@ -151,17 +151,12 @@ func (p *probe) createFilters() error {
 }
 
 func (p *probe) loadObjects() error {
-	probeSpecs, err := newProbeSpecs()
-	if err != nil {
+	objs := probeObjects{}
+	if err := loadProbeObjects(&objs, nil); err != nil {
 		return err
 	}
+	p.bpfObjects = &objs
 
-	objs, err := probeSpecs.Load(nil)
-	if err != nil {
-		return err
-	}
-
-	p.bpfObjects = objs
 	return nil
 }
 

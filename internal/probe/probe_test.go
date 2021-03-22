@@ -16,7 +16,7 @@ func TestTCPv4ACKPacket(t *testing.T) {
 	require.NoError(t, err)
 
 	in := packets.TCPv4ACK()
-	ret, out, err := probe.bpfObjects.ProgramProbe.Test(in)
+	ret, out, err := probe.bpfObjects.Probe.Test(in)
 	require.NoError(t, err)
 	require.Equal(t, tc.TCActOk, ret)
 	require.Equal(t, in, out)
@@ -29,7 +29,7 @@ func TestTCPv4SYNPacket(t *testing.T) {
 	require.NoError(t, err)
 
 	in := packets.TCPv4SYN()
-	ret, out, err := probe.bpfObjects.ProgramProbe.Test(in)
+	ret, out, err := probe.bpfObjects.Probe.Test(in)
 	require.NoError(t, err)
 	require.Equal(t, tc.TCActOk, ret)
 	require.Equal(t, in, out)
@@ -42,7 +42,7 @@ func TestTCPv4SYNACKPacket(t *testing.T) {
 	require.NoError(t, err)
 
 	in := packets.TCPv4SYNACK()
-	ret, out, err := probe.bpfObjects.ProgramProbe.Test(in)
+	ret, out, err := probe.bpfObjects.Probe.Test(in)
 	require.NoError(t, err)
 	require.Equal(t, tc.TCActOk, ret)
 	require.Equal(t, in, out)
