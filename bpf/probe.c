@@ -13,9 +13,9 @@
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-struct bpf_map_def SEC("maps") pipe = {
-    .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+} pipe SEC(".maps");
 
 struct packet_t {
   struct in6_addr src_addr, dst_addr;
