@@ -125,36 +125,20 @@ func (p *probe) createFilters() error {
 		})
 	}
 
-	// Ingress IPv4
+	// Ingress
 	addFilter(netlink.FilterAttrs{
 		LinkIndex: p.iface.Attrs().Index,
 		Parent:    netlink.HANDLE_MIN_INGRESS,
 		Handle:    netlink.MakeHandle(0xffff, 0),
-		Protocol:  unix.ETH_P_IP,
+		Protocol:  unix.ETH_P_ALL,
 	})
 
-	// Egress IPv4
+	// Egress
 	addFilter(netlink.FilterAttrs{
 		LinkIndex: p.iface.Attrs().Index,
 		Parent:    netlink.HANDLE_MIN_EGRESS,
 		Handle:    netlink.MakeHandle(0xffff, 0),
-		Protocol:  unix.ETH_P_IP,
-	})
-
-	// Ingress IPv6
-	addFilter(netlink.FilterAttrs{
-		LinkIndex: p.iface.Attrs().Index,
-		Parent:    netlink.HANDLE_MIN_INGRESS,
-		Handle:    netlink.MakeHandle(0xffff, 0),
-		Protocol:  unix.ETH_P_IPV6,
-	})
-
-	// Egress IPv6
-	addFilter(netlink.FilterAttrs{
-		LinkIndex: p.iface.Attrs().Index,
-		Parent:    netlink.HANDLE_MIN_EGRESS,
-		Handle:    netlink.MakeHandle(0xffff, 0),
-		Protocol:  unix.ETH_P_IPV6,
+		Protocol:  unix.ETH_P_ALL,
 	})
 
 	for _, filter := range p.filters {
